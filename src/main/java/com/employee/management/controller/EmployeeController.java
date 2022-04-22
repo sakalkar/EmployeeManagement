@@ -3,6 +3,9 @@ package com.employee.management.controller;
 import com.employee.management.model.Employee;
 import com.employee.management.repository.EmployeeRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.CachePut;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -23,6 +26,7 @@ public class EmployeeController {
      * @return ResponseEntity
      */
     @GetMapping("/employees")
+
     public ResponseEntity<List<Employee>> getEmployees() {
         try {
             return new ResponseEntity<>(employeeRepository.findAll(), HttpStatus.OK);
@@ -38,6 +42,7 @@ public class EmployeeController {
      * @return ResponseEntity
      */
     @GetMapping("/employee/{id}")
+    @Cacheable(value="employees", key="#id")
     public ResponseEntity<Employee> getEmployeeById(@PathVariable("id") long id) {
         try {
             //check if employee exist in database
@@ -66,6 +71,7 @@ public class EmployeeController {
         Employee newEmployee = employeeRepository
                 .save(Employee.builder()
                         .name(employee.getName())
+                        .address(employee.getAddress())
                         .role(employee.getRole())
                         .build());
         return new ResponseEntity<>(newEmployee, HttpStatus.OK);
@@ -79,6 +85,7 @@ public class EmployeeController {
      * @return
      */
     @PutMapping("/employee/{id}")
+    @CachePut(value="employees", key="#id")
     public ResponseEntity<Employee> updateEmployee(@PathVariable("id") long id, @RequestBody Employee employee) {
 
         //check if employee exist in database
@@ -86,6 +93,7 @@ public class EmployeeController {
 
         if (empObj != null) {
             empObj.setName(employee.getName());
+            empObj.setAddress(employee.getAddress());
             empObj.setRole(employee.getRole());
             return new ResponseEntity<>(employeeRepository.save(empObj), HttpStatus.OK);
         }
@@ -100,6 +108,7 @@ public class EmployeeController {
      * @return ResponseEntity
      */
     @DeleteMapping("/employee/{id}")
+    @CacheEvict(value="employees", key="#id")
     public ResponseEntity<HttpStatus> deleteEmployeeById(@PathVariable("id") long id) {
         try {
             //check if employee exist in database
