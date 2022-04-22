@@ -1,5 +1,6 @@
 package com.employee.management.controller;
 
+import com.employee.management.exception.EmployeeNotFoundException;
 import com.employee.management.model.Employee;
 import com.employee.management.repository.EmployeeRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -10,10 +11,11 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
-//@CrossOrigin(origins = "http://localhost:8081")
 @RestController
 public class EmployeeController {
 
@@ -26,7 +28,7 @@ public class EmployeeController {
      * @return ResponseEntity
      */
     @GetMapping("/employees")
-
+    @Cacheable(value="employees")
     public ResponseEntity<List<Employee>> getEmployees() {
         try {
             return new ResponseEntity<>(employeeRepository.findAll(), HttpStatus.OK);
@@ -43,21 +45,11 @@ public class EmployeeController {
      */
     @GetMapping("/employee/{id}")
     @Cacheable(value="employees", key="#id")
-    public ResponseEntity<Employee> getEmployeeById(@PathVariable("id") long id) {
-        try {
-            //check if employee exist in database
-            Employee empObj = getEmpRec(id);
+    public ResponseEntity<Employee> getEmployeeById(@PathVariable("id") long id) throws EmployeeNotFoundException {
 
-            if (empObj != null) {
-                return new ResponseEntity<>(empObj, HttpStatus.OK);
-            }
-
-            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
-
-        } catch (Exception e) {
-            return new ResponseEntity<>(null, HttpStatus.INTERNAL_SERVER_ERROR);
-        }
-
+        Employee employee = employeeRepository.findById(id)
+                .orElseThrow(() -> new EmployeeNotFoundException("Employee not found for this id : "+id));
+        return ResponseEntity.ok().body(employee);
     }
 
     /**
@@ -86,19 +78,15 @@ public class EmployeeController {
      */
     @PutMapping("/employee/{id}")
     @CachePut(value="employees", key="#id")
-    public ResponseEntity<Employee> updateEmployee(@PathVariable("id") long id, @RequestBody Employee employee) {
+    public ResponseEntity<Employee> updateEmployee(@PathVariable("id") long id, @RequestBody Employee employee) throws EmployeeNotFoundException {
 
-        //check if employee exist in database
-        Employee empObj = getEmpRec(id);
-
-        if (empObj != null) {
-            empObj.setName(employee.getName());
-            empObj.setAddress(employee.getAddress());
-            empObj.setRole(employee.getRole());
-            return new ResponseEntity<>(employeeRepository.save(empObj), HttpStatus.OK);
-        }
-
-        return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+        Employee employee1 =  employeeRepository.findById(id)
+                .orElseThrow(() -> new EmployeeNotFoundException("Employee not found for this id : "+id));
+        employee1.setName(employee.getName());
+        employee1.setAddress(employee.getAddress());
+        employee1.setRole(employee.getRole());
+        final Employee updateEmployee = employeeRepository.save(employee1);
+        return ResponseEntity.ok(updateEmployee);
     }
 
     /**
@@ -109,21 +97,14 @@ public class EmployeeController {
      */
     @DeleteMapping("/employee/{id}")
     @CacheEvict(value="employees", key="#id")
-    public ResponseEntity<HttpStatus> deleteEmployeeById(@PathVariable("id") long id) {
-        try {
-            //check if employee exist in database
-            Employee emp = getEmpRec(id);
+    public Map<String, Boolean> deleteEmployeeById(@PathVariable("id") long id) throws EmployeeNotFoundException {
 
-            if (emp != null) {
-                employeeRepository.deleteById(id);
-                return new ResponseEntity<>(HttpStatus.OK);
-            }
-
-            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
-
-        } catch (Exception e) {
-            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
-        }
+        Employee employee1 =  employeeRepository.findById(id)
+                .orElseThrow(() -> new EmployeeNotFoundException("Employee not found for this id : "+id));
+        employeeRepository.deleteById(id);
+        Map<String, Boolean> response = new HashMap<>();
+        response.put("deleted", Boolean.TRUE);
+        return response;
     }
 
 
