@@ -1,7 +1,7 @@
-package com.techgeeknext.controller;
+package com.employee.management.controller;
 
-import com.techgeeknext.model.Employee;
-import com.techgeeknext.repository.EmployeeRepository;
+import com.employee.management.model.Employee;
+import com.employee.management.repository.EmployeeRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
